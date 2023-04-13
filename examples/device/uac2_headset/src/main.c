@@ -29,6 +29,8 @@
 #include "bsp/board.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
+#include "i2s_audio.h"
+#include "board_config.h"
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTOTYPES
@@ -100,10 +102,36 @@ void audio_task(void);
 /*------------- MAIN -------------*/
 int main(void)
 {
-  board_init();
+  // DCDC PSM control
+  // 0: PFM mode (best efficiency)
+  // 1: PWM mode (improved ripple)
+  gpio_init(PIN_DCDC_PSM_CTRL);
+  gpio_set_dir(PIN_DCDC_PSM_CTRL, GPIO_OUT);
+  gpio_put(PIN_DCDC_PSM_CTRL, 1); // PWM mode for less Audio noise
+
+  gpio_init(LED_R);
+  gpio_set_function(LED_R, GPIO_FUNC_SIO);
+  gpio_set_dir(LED_R, GPIO_OUT);
+  gpio_put(LED_R, 1);
+
+  gpio_init(LED_G);
+  gpio_set_function(LED_G, GPIO_FUNC_SIO);
+  gpio_set_dir(LED_G, GPIO_OUT);
+  gpio_put(LED_G, 1);
+
+  gpio_init(LED_B);
+  gpio_set_function(LED_B, GPIO_FUNC_SIO);
+  gpio_set_dir(LED_B, GPIO_OUT);
+  gpio_put(LED_B, 1);
+
+
+  //board_init();
 
   // init device stack on configured roothub port
   tud_init(BOARD_TUD_RHPORT);
+
+  i2s_audio_init();
+  i2s_audio_start();
 
   TU_LOG1("Headset running\r\n");
 
@@ -112,6 +140,7 @@ int main(void)
     tud_task(); // TinyUSB device task
     audio_task();
     led_blinking_task();
+    //i2s_audio_give_buffer(NULL, 0);
   }
 }
 
@@ -385,13 +414,19 @@ bool tud_audio_tx_done_pre_load_cb(uint8_t rhport, uint8_t itf, uint8_t ep_in, u
 
 void audio_task(void)
 {
+  static bool led_b_state = false;
   // When new data arrived, copy data from speaker buffer, to microphone buffer
   // and send it over
   // Only support speaker & headphone both have the same resolution
   // If one is 16bit another is 24bit be care of LOUD noise !
   if (spk_data_size)
   {
-    if (current_resolution == 16)
+    led_b_state = !led_b_state;
+    gpio_put(LED_B, led_b_state);
+  
+    i2s_audio_give_buffer(spk_buf, (size_t)spk_data_size, current_resolution);
+    spk_data_size = 0;
+    /*if (current_resolution == 16)
     {
       int16_t *src = (int16_t*)spk_buf;
       int16_t *limit = (int16_t*)spk_buf + spk_data_size / 2;
@@ -420,7 +455,7 @@ void audio_task(void)
       }
       tud_audio_write((uint8_t *)mic_buf, (uint16_t) (spk_data_size / 2));
       spk_data_size = 0;
-    }
+    }*/
   }
 }
 
@@ -436,6 +471,7 @@ void led_blinking_task(void)
   if (board_millis() - start_ms < blink_interval_ms) return;
   start_ms += blink_interval_ms;
 
-  board_led_write(led_state);
+  //board_led_write(led_state);
+  gpio_put(LED_G, led_state);
   led_state = 1 - led_state;
 }
