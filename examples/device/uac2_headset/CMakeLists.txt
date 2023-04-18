@@ -9,7 +9,7 @@ project(${PROJECT})
 # Checks this example is valid for the family and initializes the project
 family_initialize_project(${PROJECT} ${CMAKE_CURRENT_LIST_DIR})
 
-target_compile_options(pico_audio_i2s INTERFACE $<$<CXX_COMPILER_ID:GNU>:-Wno-conversion -Wno-missing-field-initializers -Wno-cast-align>)
+target_compile_options(pico_audio_i2s INTERFACE $<$<CXX_COMPILER_ID:GNU>:-Wno-conversion -Wno-missing-field-initializers -Wno-cast-align -Wno-shadow>)
 
 add_executable(${PROJECT})
 
@@ -39,4 +39,4 @@ target_include_directories(${PROJECT} PUBLIC
 # in hw/bsp/FAMILY/family.cmake for details.
 family_configure_device_example(${PROJECT})
 
-target_link_libraries(${PROJECT} PUBLIC pico_stdlib pico_audio_i2s pico_multicore)
+target_link_libraries(${PROJECT} PUBLIC pico_stdlib pico_audio_i2s pico_unique_id pico_multicore)

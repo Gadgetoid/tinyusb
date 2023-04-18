@@ -26,6 +26,7 @@
 
 #include "tusb.h"
 #include "usb_descriptors.h"
+#include "pico/unique_id.h"
 
 /* A combination of interfaces must have a unique product id, since PC will save device driver after the first plug.
  * Same VID/PID with different interface e.g MSC (first), then CDC (later) will possibly cause system error on PC.
@@ -69,6 +70,14 @@ tusb_desc_device_t const desc_device =
 uint8_t const * tud_descriptor_device_cb(void)
 {
   return (uint8_t const *)&desc_device;
+}
+
+
+// Storage for 8-byte unique ID, needs 16 + 1 bytes for hex representation + '\0'.
+char usb_serial[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
+
+void usb_serial_init(void) {
+  pico_get_unique_board_id_string(usb_serial, sizeof(usb_serial));
 }
 
 //--------------------------------------------------------------------+
@@ -130,11 +139,10 @@ uint8_t const * tud_descriptor_configuration_cb(uint8_t index)
 char const* string_desc_arr [] =
 {
   (const char[]) { 0x09, 0x04 },  // 0: is supported language is English (0x0409)
-  "TinyUSB",                      // 1: Manufacturer
-  "TinyUSB headset",              // 2: Product
-  "000001",                       // 3: Serials, should use chip ID
-  "TinyUSB Speakers",             // 4: Audio Interface
-  "TinyUSB Microphone",           // 5: Audio Interface
+  "Pimoroni",                     // 1: Manufacturer
+  "Picade",                       // 2: Product
+  usb_serial,                     // 3: Serials, should use chip ID
+  "Speakers",                     // 4: Audio Interface
 };
 
 static uint16_t _desc_str[32];

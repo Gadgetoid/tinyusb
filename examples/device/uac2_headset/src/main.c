@@ -84,8 +84,6 @@ static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 int8_t mute[CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1];       // +1 for master channel 0
 int16_t volume[CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1];    // +1 for master channel 0
 
-// Buffer for microphone data
-int32_t mic_buf[CFG_TUD_AUDIO_FUNC_1_EP_IN_SW_BUF_SZ / 4];
 // Buffer for speaker data
 int32_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 4];
 // Speaker data size received in the last frame
@@ -98,6 +96,7 @@ uint8_t current_resolution;
 
 void led_blinking_task(void);
 void audio_task(void);
+void usb_serial_init(void);
 
 /*------------- MAIN -------------*/
 int main(void)
@@ -124,8 +123,9 @@ int main(void)
   gpio_set_dir(LED_B, GPIO_OUT);
   gpio_put(LED_B, 1);
 
-
-  //board_init();
+  board_init();
+  // Fetch the Pico serial (actually the flash chip ID) into `usb_serial`
+  usb_serial_init();
 
   // init device stack on configured roothub port
   tud_init(BOARD_TUD_RHPORT);
@@ -426,36 +426,6 @@ void audio_task(void)
   
     i2s_audio_give_buffer(spk_buf, (size_t)spk_data_size, current_resolution);
     spk_data_size = 0;
-    /*if (current_resolution == 16)
-    {
-      int16_t *src = (int16_t*)spk_buf;
-      int16_t *limit = (int16_t*)spk_buf + spk_data_size / 2;
-      int16_t *dst = (int16_t*)mic_buf;
-      while (src < limit)
-      {
-        // Combine two channels into one
-        int32_t left = *src++;
-        int32_t right = *src++;
-        *dst++ = (int16_t) ((left >> 1) + (right >> 1));
-      }
-      tud_audio_write((uint8_t *)mic_buf, (uint16_t) (spk_data_size / 2));
-      spk_data_size = 0;
-    }
-    else if (current_resolution == 24)
-    {
-      int32_t *src = spk_buf;
-      int32_t *limit = spk_buf + spk_data_size / 4;
-      int32_t *dst = mic_buf;
-      while (src < limit)
-      {
-        // Combine two channels into one
-        int32_t left = *src++;
-        int32_t right = *src++;
-        *dst++ = (int32_t) ((uint32_t) ((left >> 1) + (right >> 1)) & 0xffffff00ul);
-      }
-      tud_audio_write((uint8_t *)mic_buf, (uint16_t) (spk_data_size / 2));
-      spk_data_size = 0;
-    }*/
   }
 }
 
